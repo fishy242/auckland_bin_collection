@@ -1,0 +1,11 @@
+{
+  "codeowners": ["@fishy242"],
+  "config_flow": false,
+  "dependencies": [],
+  "documentation": "https://github.com/fishy242/home-assistant-core",
+  "domain": "auckland_bin_collection",
+  "iot_class": "cloud_polling",
+  "name": "Auckland Bin Collection",
+  "requirements": [],
+  "version": "0.0.1"
+}
