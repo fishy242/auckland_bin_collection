@@ -14,9 +14,19 @@ def main():
 
     soup = bs(html, "html.parser")
     household = soup.find_all("div", {"id": lambda x: x and "HouseholdBlock" in x})
+
+    result = []
     # We can assume only one Household Block
-    for date in household[0].find_all("span", {"class": "m-r-1"}):
-        print(date.text)
+    for collect_date in household[0].find_all("span", {"class": "m-r-1"}):
+        collect_types = []
+        for sibling in collect_date.find_next_siblings():
+            collect_type = sibling.find("span", {"class": "sr-only"})
+            if collect_type:
+                # print(collect_type.text)
+                collect_types.append(collect_type.text)
+        result.append({collect_date.text: collect_types})
+
+    print(result)
 
 
 if __name__ == "__main__":
