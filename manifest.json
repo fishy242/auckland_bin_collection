@@ -1,6 +1,6 @@
 {
   "codeowners": ["@fishy242"],
-  "config_flow": false,
+  "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/fishy242/home-assistant-core",
   "domain": "auckland_bin_collection",
