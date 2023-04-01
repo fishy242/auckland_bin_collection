@@ -22,7 +22,6 @@ def main():
         for sibling in collect_date.find_next_siblings():
             collect_type = sibling.find("span", {"class": "sr-only"})
             if collect_type:
-                # print(collect_type.text)
                 collect_types.append(collect_type.text)
         result.append({collect_date.text: collect_types})
 
