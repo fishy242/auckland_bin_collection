@@ -7,8 +7,10 @@ from homeassistant.core import HomeAssistant
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.components.sensor import SensorEntity
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from datetime import datetime, timedelta
+from typing import Any
 from bs4 import BeautifulSoup
 from .const import CONF_LOCATION_ID, DOMAIN
 
@@ -73,8 +75,12 @@ async def async_setup_entry(
 
     async_add_entities(
         [
-            AucklandBinCollection(coordinator, "Auckland Bin Collection Upcoming", 0),
-            AucklandBinCollection(coordinator, "Auckland Bin Collection Next", 1),
+            AucklandBinCollection(
+                coordinator, location_id, "Auckland Bin Collection Upcoming", 0
+            ),
+            AucklandBinCollection(
+                coordinator, location_id, "Auckland Bin Collection Next", 1
+            ),
         ]
     )
 
@@ -82,8 +88,9 @@ async def async_setup_entry(
 class AucklandBinCollection(SensorEntity):
     """AucklandBinCollection class."""
 
-    def __init__(self, coordinator, name, date_index) -> None:
+    def __init__(self, coordinator, location_id, name, date_index) -> None:
         self.coordinator = coordinator
+        self._location_id = location_id
         self._name = name
         self._date_index = date_index
 
@@ -92,24 +99,36 @@ class AucklandBinCollection(SensorEntity):
         return self._name
 
     @property
-    def native_value(self):
+    def native_value(self) -> StateType:
         """Return the state."""
         if not self.coordinator.data:
             return None
-        _LOGGER.debug(
-            "state return for %d - %s",
-            self._date_index,
-            self.coordinator.data[self._date_index],
-        )
 
         return convert_date_str_to_obj(
             self.coordinator.data[self._date_index][KEY_DATE]
         )
 
     @property
-    def device_state_attributes(self):
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return the state attributes."""
-        return {"attr": "I am attribute"}
+        if not self.coordinator.data:
+            return None
+
+        try:
+            data = self.coordinator.data[self._date_index]
+        except IndexError:
+            _LOGGER.debug(
+                "coordinator.data with _date_index: %d not ready yet", self._date_index
+            )
+            return None
+
+        return {
+            "location_id": self._location_id,
+            "date": data[KEY_DATE],
+            "rubbish": "true" if "Rubbish" in data[KEY_TYPE] else "false",
+            "recycle": "true" if "Recycle" in data[KEY_TYPE] else "false",
+            "query_url": f"{URL_REQUEST}{self._location_id}",
+        }
 
     async def async_update(self):
         """Handle data update."""
