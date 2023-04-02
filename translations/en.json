@@ -1,0 +1,13 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "data": {
+                    "location_id": "Location ID"
+                },
+                "description": "Enter your properties address's location ID.",
+                "title": "Enter Location ID"
+            }
+        }
+    }
+}
