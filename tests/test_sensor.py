@@ -23,3 +23,4 @@ def test_get_date_from_str_invalid_input():
     
     result = get_date_from_str("INVALID DATE STRING")
     assert result is None
+    
