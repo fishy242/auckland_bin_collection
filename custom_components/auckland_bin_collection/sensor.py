@@ -109,9 +109,7 @@ class AucklandBinCollection(SensorEntity):
         if not self.coordinator.data:
             return None
 
-        return get_date_from_str(
-            self.coordinator.data[self._date_index][KEY_DATE]
-        )
+        return get_date_from_str(self.coordinator.data[self._date_index][KEY_DATE])
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
