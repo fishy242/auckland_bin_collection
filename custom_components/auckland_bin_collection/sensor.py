@@ -21,11 +21,16 @@ KEY_TYPE = "type"
 URL_REQUEST = "https://www.aucklandcouncil.govt.nz/rubbish-recycling/rubbish-recycling-collections/Pages/collection-day-detail.aspx?an="
 
 
-def convert_date_str_to_obj(date_str: str) -> datetime.date:
+def get_date_from_str(date_str: str) -> datetime.date:
     """Convert a date string to date object"""
 
+    try:
+        input_date = datetime.strptime(date_str, "%A %d %B")
+    except ValueError as e:
+        _LOGGER.error("Invalid input date string.")
+        return None
+
     timezone = pytz.timezone("Pacific/Auckland")
-    input_date = datetime.strptime(date_str, "%A %d %B")
     current_date = datetime.now()
 
     if (input_date.month == 1) and (current_date.month == 12):
@@ -104,7 +109,7 @@ class AucklandBinCollection(SensorEntity):
         if not self.coordinator.data:
             return None
 
-        return convert_date_str_to_obj(
+        return get_date_from_str(
             self.coordinator.data[self._date_index][KEY_DATE]
         )
 
