@@ -26,8 +26,8 @@ def get_date_from_str(date_str: str) -> datetime.date:
 
     try:
         input_date = datetime.strptime(date_str, "%A %d %B")
-    except ValueError as e:
-        _LOGGER.error("Invalid input date string.")
+    except ValueError:
+        _LOGGER.error("Invalid input date string")
         return None
 
     timezone = pytz.timezone("Pacific/Auckland")
@@ -50,6 +50,9 @@ async def async_get_bin_dates(hass: HomeAssistant, location_id: str):
     soup = BeautifulSoup(response.text, "html.parser")
     household = soup.find_all("div", {"id": lambda x: x and "HouseholdBlock" in x})
 
+    if not household:
+        raise ValueError("Data with location ID not found")
+
     result = []
     # We can assume only one Household Block
     for collect_date in household[0].find_all("span", {"class": "m-r-1"}):
@@ -59,6 +62,9 @@ async def async_get_bin_dates(hass: HomeAssistant, location_id: str):
             if collect_type:
                 collect_types.append(collect_type.text)
         result.append({KEY_DATE: collect_date.text, KEY_TYPE: collect_types})
+
+    if not result:
+        raise ValueError("Cannot retrieve bin dates")
 
     return result
 

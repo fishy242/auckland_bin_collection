@@ -1,9 +1,13 @@
 {
     "config": {
+        "error": {
+            "invalid_id": "Location ID has to be 11 digits.",
+            "not_found": "Location not found."
+        },
         "step": {
             "user": {
                 "data": {
-                    "location_id": "Location ID"
+                    "locyation_id": "Location ID"
                 },
                 "description": "Enter your properties address's location ID.",
                 "title": "Enter Location ID"
