@@ -1,5 +1,9 @@
 {
     "config": {
+        "error": {
+            "invalid_id": "Location ID has to be 11 digits.",
+            "not_found": "Location not found."
+        },
         "step": {
             "user": {
                 "data": {
