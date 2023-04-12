@@ -1,19 +1,24 @@
 """Auckland Bin Collection config flow."""
 import logging
-import voluptuous as vol
 from typing import Any
+
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResult
-from .const import DOMAIN, CONF_LOCATION_ID
+import voluptuous as vol
+
+from .const import CONF_LOCATION_ID, DOMAIN
 from .sensor import async_get_bin_dates
 
 _LOGGER = logging.getLogger(__name__)
+
 _LOCATION_ID_LEN = 11
 
 _E_NOT_DIGIT = "NOT DIGIT"
 _E_INVALID_LEN = "INVALID LEN"
 _E_NOT_FOUND = "NOT FOUND"
+
+LOCATION_SCHEMA = vol.Schema({vol.Required(CONF_LOCATION_ID): str})
 
 
 async def validate_location_id(hass: HomeAssistant, id: str) -> None:
@@ -57,6 +62,6 @@ class AucklandBinCollectionFlowHandler(config_entries.ConfigFlow, domain=DOMAIN)
 
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema({vol.Required(CONF_LOCATION_ID): str}),
+            data_schema=LOCATION_SCHEMA,
             errors=errors,
         )
