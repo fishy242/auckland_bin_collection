@@ -1,17 +1,19 @@
 """Auckland Bin Collection sensor component"""
 
+from datetime import datetime, timedelta
 import logging
-import requests
-import pytz
-from homeassistant.core import HomeAssistant
-from homeassistant.config_entries import ConfigEntry
+from typing import Any
+
+from bs4 import BeautifulSoup
 from homeassistant.components.sensor import SensorEntity
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-from datetime import datetime, timedelta
-from typing import Any
-from bs4 import BeautifulSoup
+import pytz
+import requests
+
 from .const import CONF_LOCATION_ID, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -115,7 +117,15 @@ class AucklandBinCollection(SensorEntity):
         if not self.coordinator.data:
             return None
 
-        return get_date_from_str(self.coordinator.data[self._date_index][KEY_DATE])
+        try:
+            data = self.coordinator.data[self._date_index]
+        except IndexError:
+            _LOGGER.warn(
+                "coordinator.data with _date_index: %d not ready yet", self._date_index
+            )
+            return None
+
+        return get_date_from_str(data[KEY_DATE])
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -126,7 +136,7 @@ class AucklandBinCollection(SensorEntity):
         try:
             data = self.coordinator.data[self._date_index]
         except IndexError:
-            _LOGGER.debug(
+            _LOGGER.warn(
                 "coordinator.data with _date_index: %d not ready yet", self._date_index
             )
             return None
