@@ -2,6 +2,12 @@
 
 A Home Assistant custom component grep the rubbish and recycle (food scraps soon!) bin collection date from Auckland Council website. User can make use of it to develop their own auotmation or notification.
 
+## Version
+
+| Version | Notes                 |
+| ------- | --------------------- |
+| 0.1.0   | First publish release |
+
 ## Installation
 
 ### HACS
