@@ -14,7 +14,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 import pytz
 import requests
 
-from .const import CONF_LOCATION_ID, DOMAIN
+#from .const import CONF_LOCATION_ID, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,27 +49,32 @@ async def async_get_bin_dates(hass: HomeAssistant, location_id: str):
     url = f"{URL_REQUEST}{location_id}"
     response = await hass.async_add_executor_job(requests.get, url)
 
+#def sensor_test():
+#    location_id = "12342731560"
+    url = f"{URL_REQUEST}{location_id}"
+    response = requests.get(url)
     soup = BeautifulSoup(response.text, "html.parser")
-    household = soup.find_all("div", {"id": lambda x: x and "HouseholdBlock" in x})
+    household = soup.find_all("div", {"id": lambda x: x and "HouseholdBlock2" in x})
 
     if not household:
         raise ValueError("Data with location ID not found")
 
     result = []
     # We can assume only one Household Block
-    for collect_date in household[0].find_all("span", {"class": "m-r-1"}):
-        collect_types = []
-        for sibling in collect_date.find_next_siblings():
-            collect_type = sibling.find("span", {"class": "sr-only"})
-            if collect_type:
-                collect_types.append(collect_type.text)
-        result.append({KEY_DATE: collect_date.text, KEY_TYPE: collect_types})
+    for date_block in household[0].find_all("h5", {"class": "collectionDayDate"}):
+        collect_type = date_block.find("span", {"class": "sr-only"})
+        collect_date = date_block.find("strong")
+        if collect_date and collect_type:
+            result.append({KEY_DATE: collect_date.text, KEY_TYPE: collect_type.text})
 
     if not result:
         raise ValueError("Cannot retrieve bin dates")
 
+    print(f"return: {result}")
     return result
 
+#if __name__ == "__main__":
+ #   sensor_test()
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
