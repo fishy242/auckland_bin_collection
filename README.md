@@ -4,9 +4,10 @@ A Home Assistant custom component grep the rubbish and recycle (food scraps soon
 
 ## Version
 
-| Version | Notes                 |
-| ------- | --------------------- |
-| 0.1.0   | First publish release |
+| Version | Notes                                                                  |
+| ------- | ---------------------------------------------------------------------- |
+| 0.1.0   | First publish release                                                  |
+| 0.2.0   | Update with Auckland Council website to include food scraps collection |
 
 ## Installation
 
@@ -45,6 +46,7 @@ The table below shows the attributes of the sensor.
 | date | Date string retrieve from the Auckland Council webpage. |
 | rubbish | `true` or `false` - Rubbish bin will be collected or not. |
 | recycle | `true` or `false` - Recycle bin will be collected or not. |
+| food scraps | `true` or `false` - Food scraps bin will be collected or not. |
 | query_url | The URL where the information retrieved from. |
 | friendly_name | Sensor's friendly name. |
 
@@ -53,9 +55,9 @@ The table below shows the attributes of the sensor.
 You can add a Markdown Card on your Home Assistant Dashboard with the following content:
 
 ```
-Upcoming: **{{ state_attr('sensor.auckland_bin_collection_upcoming', 'date') }}**{% if state_attr('sensor.auckland_bin_collection_upcoming', 'rubbish') == 'true' %} <ha-icon icon="mdi:trash-can-outline"></ha-icon>{% endif %}{% if state_attr('sensor.auckland_bin_collection_upcoming', 'recycle') == 'true' %} <ha-icon icon="mdi:recycle"></ha-icon>{% endif %}
+Upcoming: **{{ state_attr('sensor.auckland_bin_collection_upcoming', 'date') }}**{% if state_attr('sensor.auckland_bin_collection_upcoming', 'rubbish') == 'true' %} <ha-icon icon="mdi:trash-can-outline"></ha-icon>{% endif %}{% if state_attr('sensor.auckland_bin_collection_upcoming', 'recycle') == 'true' %} <ha-icon icon="mdi:recycle"></ha-icon>{% endif %}{% if state_attr('sensor.auckland_bin_collection_upcoming', 'food scraps') == 'true' %} <ha-icon icon="mdi:compost"></ha-icon>{% endif %}
 
-Next:  **{{ state_attr('sensor.auckland_bin_collection_next', 'date') }}**{% if state_attr('sensor.auckland_bin_collection_next', 'rubbish') == 'true' %} <ha-icon icon="mdi:trash-can-outline"></ha-icon>{% endif %}{% if state_attr('sensor.auckland_bin_collection_next', 'recycle') == 'true' %}<ha-icon icon="mdi:recycle"></ha-icon>{% endif %}
+Next:  **{{ state_attr('sensor.auckland_bin_collection_next', 'date') }}**{% if state_attr('sensor.auckland_bin_collection_next', 'rubbish') == 'true' %} <ha-icon icon="mdi:trash-can-outline"></ha-icon>{% endif %}{% if state_attr('sensor.auckland_bin_collection_next', 'recycle') == 'true' %}<ha-icon icon="mdi:recycle"></ha-icon>{% endif %}{% if state_attr('sensor.auckland_bin_collection_next', 'food scraps') == 'true' %} <ha-icon icon="mdi:compost"></ha-icon>{% endif %}
 ```
 
 Result will look like this.
