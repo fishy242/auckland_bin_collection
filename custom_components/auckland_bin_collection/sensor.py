@@ -14,7 +14,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 import pytz
 import requests
 
-#from .const import CONF_LOCATION_ID, DOMAIN
+from .const import CONF_LOCATION_ID, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,32 +49,39 @@ async def async_get_bin_dates(hass: HomeAssistant, location_id: str):
     url = f"{URL_REQUEST}{location_id}"
     response = await hass.async_add_executor_job(requests.get, url)
 
-#def sensor_test():
-#    location_id = "12342731560"
     url = f"{URL_REQUEST}{location_id}"
-    response = requests.get(url)
+
+    if response.status_code != 200:
+        raise Exception(f"Failed to fetch page: {response.status_code}")
+
     soup = BeautifulSoup(response.text, "html.parser")
     household = soup.find_all("div", {"id": lambda x: x and "HouseholdBlock2" in x})
 
     if not household:
         raise ValueError("Data with location ID not found")
 
-    result = []
+    extracted_data = []
     # We can assume only one Household Block
     for date_block in household[0].find_all("h5", {"class": "collectionDayDate"}):
         collect_type = date_block.find("span", {"class": "sr-only"})
         collect_date = date_block.find("strong")
         if collect_date and collect_type:
-            result.append({KEY_DATE: collect_date.text, KEY_TYPE: collect_type.text})
+            extracted_data.append((collect_date.text, collect_type.text))
 
-    if not result:
+    if not extracted_data:
         raise ValueError("Cannot retrieve bin dates")
 
-    print(f"return: {result}")
-    return result
+    data_dict = {}
+    for collect_date, collect_type in extracted_data:
+        if collect_date not in data_dict:
+            data_dict[collect_date] = []
+        data_dict[collect_date].append(collect_type)
 
-#if __name__ == "__main__":
- #   sensor_test()
+    sorted_date = sorted(data_dict.keys(), key=get_date_from_str)
+    sorted_data = [{collect_date: data_dict[collect_date]} for collect_date in sorted_date]
+
+    return sorted_data
+
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
@@ -130,7 +137,7 @@ class AucklandBinCollection(SensorEntity):
             )
             return None
 
-        return get_date_from_str(data[KEY_DATE])
+        return get_date_from_str(list(data.keys())[0])
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
@@ -146,11 +153,13 @@ class AucklandBinCollection(SensorEntity):
             )
             return None
 
+        date = list(data.keys())[0]
         return {
             "location_id": self._location_id,
-            "date": data[KEY_DATE],
-            "rubbish": "true" if "Rubbish" in data[KEY_TYPE] else "false",
-            "recycle": "true" if "Recycle" in data[KEY_TYPE] else "false",
+            "date": date,
+            "rubbish": "true" if "Rubbish" in data[date] else "false",
+            "recycle": "true" if "Recycle" in data[date] else "false",
+            "food scraps": "true" if "Food scraps" in data[date] else "false",
             "query_url": f"{URL_REQUEST}{self._location_id}",
         }
 
