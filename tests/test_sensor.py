@@ -13,15 +13,17 @@ from custom_components.auckland_bin_collection.sensor import (
 
 TEST_LOC = "12345678901"
 TEST_UPCOMING_DATE_STR = "Tuesday 12 January"
-TEST_UPCOMING_TYPE_STR = ["Rubbish"]
+TEST_UPCOMING_TYPE_STR = ["Rubbish", "Food scraps"]
 TEST_UPCOMING_DATE = date(2023, 1, 12)
 TEST_UPCOMING_RUBBISH = "true"
 TEST_UPCOMING_RECYCLE = "false"
+TEST_UPCOMING_FOODSCRAPS = "true"
 TEST_UPCOMING_ATTRS = {
     "location_id": TEST_LOC,
     "date": TEST_UPCOMING_DATE_STR,
     "rubbish": TEST_UPCOMING_RUBBISH,
     "recycle": TEST_UPCOMING_RECYCLE,
+    "food scraps": TEST_UPCOMING_FOODSCRAPS,
     "query_url": f"{URL_REQUEST}{TEST_LOC}",
 }
 
@@ -30,17 +32,19 @@ TEST_NEXT_TYPE_STR = ["Rubbish", "Recycle"]
 TEST_NEXT_DATE = date(2023, 3, 25)
 TEST_NEXT_RUBBISH = "true"
 TEST_NEXT_RECYCLE = "true"
+TEST_NEXT_FOODSCRAPS = "false"
 TEST_NEXT_ATTRS = {
     "location_id": TEST_LOC,
     "date": TEST_NEXT_DATE_STR,
     "rubbish": TEST_NEXT_RUBBISH,
     "recycle": TEST_NEXT_RECYCLE,
+    "food scraps": TEST_NEXT_FOODSCRAPS,
     "query_url": f"{URL_REQUEST}{TEST_LOC}",
 }
 
 TEST_COORDINATOR_DATA = [
-    {"date": TEST_UPCOMING_DATE_STR, "type": TEST_UPCOMING_TYPE_STR},
-    {"date": TEST_NEXT_DATE_STR, "type": TEST_NEXT_TYPE_STR},
+    {TEST_UPCOMING_DATE_STR: TEST_UPCOMING_TYPE_STR},
+    {TEST_NEXT_DATE_STR: TEST_NEXT_TYPE_STR},
 ]
 
 

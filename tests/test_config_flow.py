@@ -13,9 +13,7 @@ from custom_components.auckland_bin_collection.const import CONF_LOCATION_ID
 async def test_validate_location_id(mock_async_get_bin_dates, hass):
     """Test valid location id."""
 
-    mock_async_get_bin_dates.return_value = [
-        {"date": "Monday January 1", "type": "rubbish"}
-    ]
+    mock_async_get_bin_dates.return_value = [{"Monday January 1": ["Rubbish"]}]
     await config_flow.validate_location_id(hass, "12345678901")
 
 
