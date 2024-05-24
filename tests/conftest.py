@@ -1,8 +1,8 @@
 """pytest fixtures."""
-import pytest_asyncio
+import pytest
 
 
-@pytest_asyncio.fixture(autouse=True)
+@pytest.fixture(autouse=True)
 def auto_enable_custom_integrations(enable_custom_integrations):
     """Enable custom integrations defined in the test dir."""
-    yield
+    yield enable_custom_integrations
