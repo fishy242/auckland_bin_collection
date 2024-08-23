@@ -64,9 +64,10 @@ async def async_get_bin_dates(hass: HomeAssistant, location_id: str):
     # We can assume only one Household Block
     for date_block in household[0].find_all("h5", {"class": "collectionDayDate"}):
         collect_type = date_block.find("span", {"class": "sr-only"})
+        collect_type = date_block.find("span").find_next_sibling(text=True).strip().rstrip(':')
         collect_date = date_block.find("strong")
         if collect_date and collect_type:
-            extracted_data.append((collect_date.text, collect_type.text))
+            extracted_data.append((collect_date.text, collect_type))
 
     if not extracted_data:
         raise ValueError("Cannot retrieve bin dates")
@@ -148,7 +149,7 @@ class AucklandBinCollection(SensorEntity):
         try:
             data = self.coordinator.data[self._date_index]
         except IndexError:
-            _LOGGER.warning(
+            _LOGGER.info(
                 "coordinator.data with _date_index: %d not ready yet", self._date_index
             )
             return None
