@@ -63,7 +63,6 @@ async def async_get_bin_dates(hass: HomeAssistant, location_id: str):
     extracted_data = []
     # We can assume only one Household Block
     for date_block in household[0].find_all("h5", {"class": "collectionDayDate"}):
-        collect_type = date_block.find("span", {"class": "sr-only"})
         collect_type = date_block.find("span").find_next_sibling(text=True).strip().rstrip(':')
         collect_date = date_block.find("strong")
         if collect_date and collect_type:
