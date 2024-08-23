@@ -132,7 +132,7 @@ class AucklandBinCollection(SensorEntity):
         try:
             data = self.coordinator.data[self._date_index]
         except IndexError:
-            _LOGGER.warning(
+            _LOGGER.info(
                 "coordinator.data with _date_index: %d not ready yet", self._date_index
             )
             return None
