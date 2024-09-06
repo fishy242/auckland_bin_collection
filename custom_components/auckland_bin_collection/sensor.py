@@ -49,8 +49,6 @@ async def async_get_bin_dates(hass: HomeAssistant, location_id: str):
     url = f"{URL_REQUEST}{location_id}"
     response = await hass.async_add_executor_job(requests.get, url)
 
-    url = f"{URL_REQUEST}{location_id}"
-
     if response.status_code != 200:
         raise Exception(f"Failed to fetch page: {response.status_code}")
 
@@ -63,7 +61,7 @@ async def async_get_bin_dates(hass: HomeAssistant, location_id: str):
     extracted_data = []
     # We can assume only one Household Block
     for date_block in household[0].find_all("h5", {"class": "collectionDayDate"}):
-        collect_type = date_block.find("span").find_next_sibling(text=True).strip().rstrip(':')
+        collect_type = date_block.find("span").find_next_sibling(string=True).strip().rstrip(':')
         collect_date = date_block.find("strong")
         if collect_date and collect_type:
             extracted_data.append((collect_date.text, collect_type))
@@ -158,7 +156,7 @@ class AucklandBinCollection(SensorEntity):
             "location_id": self._location_id,
             "date": date,
             "rubbish": "true" if "Rubbish" in data[date] else "false",
-            "recycle": "true" if "Recycle" in data[date] else "false",
+            "recycle": "true" if "Recycling" in data[date] else "false",
             "food scraps": "true" if "Food scraps" in data[date] else "false",
             "query_url": f"{URL_REQUEST}{self._location_id}",
         }
