@@ -28,7 +28,7 @@ TEST_UPCOMING_ATTRS = {
 }
 
 TEST_NEXT_DATE_STR = "Friday 25 March"
-TEST_NEXT_TYPE_STR = ["Rubbish", "Recycle"]
+TEST_NEXT_TYPE_STR = ["Rubbish", "Recycling"]
 TEST_NEXT_DATE = date(2023, 3, 25)
 TEST_NEXT_RUBBISH = "true"
 TEST_NEXT_RECYCLE = "true"
