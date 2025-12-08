@@ -58,6 +58,7 @@ async def test_flow_user_init(hass):
         "last_step": None,
         "step_id": "user",
         "type": "form",
+        "preview": None,
     }
     assert expected == result
 

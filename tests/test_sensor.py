@@ -14,7 +14,7 @@ from custom_components.auckland_bin_collection.sensor import (
 TEST_LOC = "12345678901"
 TEST_UPCOMING_DATE_STR = "Tuesday, 12 January"
 TEST_UPCOMING_TYPE_STR = ["Rubbish", "Food scraps"]
-TEST_UPCOMING_DATE = date(2023, 1, 12)
+TEST_UPCOMING_STATE = "2023-01-12"
 TEST_UPCOMING_RUBBISH = "true"
 TEST_UPCOMING_RECYCLE = "false"
 TEST_UPCOMING_FOODSCRAPS = "true"
@@ -24,12 +24,12 @@ TEST_UPCOMING_ATTRS = {
     "rubbish": TEST_UPCOMING_RUBBISH,
     "recycle": TEST_UPCOMING_RECYCLE,
     "food scraps": TEST_UPCOMING_FOODSCRAPS,
-    "query_url": f"{URL_REQUEST}{TEST_LOC}.html",
+    "query_url": f"{URL_REQUEST}{TEST_LOC}",
 }
 
 TEST_NEXT_DATE_STR = "Friday, 25 March"
 TEST_NEXT_TYPE_STR = ["Rubbish", "Recycling"]
-TEST_NEXT_DATE = date(2023, 3, 25)
+TEST_NEXT_STATE = "2023-03-25"
 TEST_NEXT_RUBBISH = "true"
 TEST_NEXT_RECYCLE = "true"
 TEST_NEXT_FOODSCRAPS = "false"
@@ -39,7 +39,7 @@ TEST_NEXT_ATTRS = {
     "rubbish": TEST_NEXT_RUBBISH,
     "recycle": TEST_NEXT_RECYCLE,
     "food scraps": TEST_NEXT_FOODSCRAPS,
-    "query_url": f"{URL_REQUEST}{TEST_LOC}.html",
+    "query_url": f"{URL_REQUEST}{TEST_LOC}",
 }
 
 TEST_COORDINATOR_DATA = [
@@ -81,7 +81,7 @@ async def test_update_upcoming_success():
     _coordinator.data = TEST_COORDINATOR_DATA
     upcoming = AucklandBinCollection(_coordinator, TEST_LOC, "upcoming", 0)
     await upcoming.async_update()
-    assert upcoming.state == TEST_UPCOMING_DATE
+    assert upcoming.state == TEST_UPCOMING_STATE
     assert upcoming.extra_state_attributes == TEST_UPCOMING_ATTRS
 
 
@@ -93,7 +93,7 @@ async def test_update_next_success():
     m_coordinator.data = TEST_COORDINATOR_DATA
     next = AucklandBinCollection(m_coordinator, TEST_LOC, "next", 1)
     await next.async_update()
-    assert next.state == TEST_NEXT_DATE
+    assert next.state == TEST_NEXT_STATE
     assert next.extra_state_attributes == TEST_NEXT_ATTRS
 
 
