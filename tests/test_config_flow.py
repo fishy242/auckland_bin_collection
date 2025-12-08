@@ -49,18 +49,16 @@ async def test_flow_user_init(hass):
     result = await hass.config_entries.flow.async_init(
         config_flow.DOMAIN, context={"source": "user"}
     )
-    expected = {
-        "data_schema": config_flow.LOCATION_SCHEMA,
-        "description_placeholders": None,
-        "errors": {},
-        "flow_id": mock.ANY,
-        "handler": "auckland_bin_collection",
-        "last_step": None,
-        "step_id": "user",
-        "type": "form",
-        "preview": None,
-    }
-    assert expected == result
+    # Check required fields - handle version differences
+    assert result["data_schema"] == config_flow.LOCATION_SCHEMA
+    assert result["description_placeholders"] is None
+    assert result["errors"] == {}
+    assert "flow_id" in result
+    assert result["handler"] == "auckland_bin_collection"
+    assert result["last_step"] is None
+    assert result["step_id"] == "user"
+    # Type can be string or enum depending on version
+    assert str(result["type"]) == "form"
 
 
 @pytest.mark.asyncio
