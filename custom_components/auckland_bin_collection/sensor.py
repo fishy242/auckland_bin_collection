@@ -20,7 +20,7 @@ _LOGGER = logging.getLogger(__name__)
 
 KEY_DATE = "date"
 KEY_TYPE = "type"
-URL_REQUEST = "https://new.aucklandcouncil.govt.nz/en/rubbish-recycling/rubbish-recycling-collections/rubbish-recycling-collection-days/"
+URL_REQUEST = "https://www.aucklandcouncil.govt.nz/en/rubbish-recycling/rubbish-recycling-collections/rubbish-recycling-collection-days/"
 
 
 def get_date_from_str(date_str: str) -> datetime.date:
