@@ -131,6 +131,7 @@ class BinCollectionCoordinator(DataUpdateCoordinator):
         )
         self._location_id = location_id
         self._unsub_scheduled: callback | None = None
+        self._last_updated: datetime | None = None
 
     async def async_start(self) -> None:
         """Start the coordinator: fetch immediately if no data, then schedule daily polls."""
@@ -189,7 +190,9 @@ class BinCollectionCoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self):
         """Fetch data from the Auckland Council website."""
-        return await async_get_bin_dates(self.hass, self._location_id)
+        result = await async_get_bin_dates(self.hass, self._location_id)
+        self._last_updated = datetime.now(POLL_TIMEZONE)
+        return result
 
     async def async_shutdown(self) -> None:
         """Cancel scheduled polls on shutdown."""
@@ -263,6 +266,7 @@ class AucklandBinCollection(SensorEntity):
             return None
 
         date = list(data.keys())[0]
+        last_updated = self.coordinator._last_updated
         return {
             "location_id": self._location_id,
             "date": date,
@@ -270,6 +274,7 @@ class AucklandBinCollection(SensorEntity):
             "recycle": "true" if "Recycling" in data[date] else "false",
             "food scraps": "true" if "Food scraps" in data[date] else "false",
             "query_url": f"{URL_REQUEST}{self._location_id}",
+            "last_updated": last_updated.isoformat() if last_updated else None,
         }
 
     @property

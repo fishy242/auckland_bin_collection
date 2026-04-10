@@ -35,6 +35,7 @@ TEST_UPCOMING_ATTRS = {
     "recycle": TEST_UPCOMING_RECYCLE,
     "food scraps": TEST_UPCOMING_FOODSCRAPS,
     "query_url": f"{URL_REQUEST}{TEST_LOC}",
+    "last_updated": None,
 }
 
 TEST_NEXT_DATE_STR = "Friday, 25 March"
@@ -50,6 +51,7 @@ TEST_NEXT_ATTRS = {
     "recycle": TEST_NEXT_RECYCLE,
     "food scraps": TEST_NEXT_FOODSCRAPS,
     "query_url": f"{URL_REQUEST}{TEST_LOC}",
+    "last_updated": None,
 }
 
 TEST_COORDINATOR_DATA = [
@@ -89,6 +91,7 @@ async def test_update_upcoming_success():
     """Test upcoming collection successful update."""
     _coordinator = AsyncMock()
     _coordinator.data = TEST_COORDINATOR_DATA
+    _coordinator._last_updated = None
     upcoming = AucklandBinCollection(_coordinator, TEST_LOC, "upcoming", 0)
     await upcoming.async_update()
     assert upcoming.state == TEST_UPCOMING_STATE
@@ -101,6 +104,7 @@ async def test_update_next_success():
     """Test next collection successful update."""
     m_coordinator = AsyncMock()
     m_coordinator.data = TEST_COORDINATOR_DATA
+    m_coordinator._last_updated = None
     next = AucklandBinCollection(m_coordinator, TEST_LOC, "next", 1)
     await next.async_update()
     assert next.state == TEST_NEXT_STATE
@@ -324,6 +328,27 @@ SAMPLE_HTML = """
 </div>
 </body></html>
 """
+
+
+@pytest.mark.asyncio
+@freeze_time("2024-06-01 03:00:00")
+async def test_async_update_data_sets_last_updated(hass):
+    """_async_update_data should stamp _last_updated with the current NZ time."""
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.text = SAMPLE_HTML
+    hass.async_add_executor_job = AsyncMock(return_value=mock_response)
+
+    coordinator = BinCollectionCoordinator(hass, TEST_LOC)
+    assert coordinator._last_updated is None
+
+    await coordinator._async_update_data()
+
+    assert coordinator._last_updated is not None
+    # Should be timezone-aware (NZ tz)
+    assert coordinator._last_updated.tzinfo is not None
+    # Frozen at 2024-06-01 03:00 UTC → 15:00 NZ
+    assert coordinator._last_updated.strftime("%H:%M") == "15:00"
 
 
 @pytest.mark.asyncio
