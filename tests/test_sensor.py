@@ -11,7 +11,7 @@ from custom_components.auckland_bin_collection.sensor import (
     AucklandBinCollection,
     BinCollectionCoordinator,
     POLL_HOUR,
-    POLL_JITTER_MINUTES,
+    POLL_JITTER_SECONDS,
     RETRY_MIN_MINUTES,
     RETRY_MAX_MINUTES,
     POLL_TIMEZONE,
@@ -93,7 +93,6 @@ async def test_update_upcoming_success():
     _coordinator.data = TEST_COORDINATOR_DATA
     _coordinator._last_updated = None
     upcoming = AucklandBinCollection(_coordinator, TEST_LOC, "upcoming", 0)
-    await upcoming.async_update()
     assert upcoming.state == TEST_UPCOMING_STATE
     assert upcoming.extra_state_attributes == TEST_UPCOMING_ATTRS
 
@@ -106,7 +105,6 @@ async def test_update_next_success():
     m_coordinator.data = TEST_COORDINATOR_DATA
     m_coordinator._last_updated = None
     next = AucklandBinCollection(m_coordinator, TEST_LOC, "next", 1)
-    await next.async_update()
     assert next.state == TEST_NEXT_STATE
     assert next.extra_state_attributes == TEST_NEXT_ATTRS
 
@@ -117,7 +115,6 @@ async def test_update_upcoming_fail():
     m_coordinator = AsyncMock()
     m_coordinator.data = None
     upcoming = AucklandBinCollection(m_coordinator, TEST_LOC, "upcoming", 0)
-    await upcoming.async_update()
     assert upcoming.state is None
     assert upcoming.extra_state_attributes is None
 
@@ -128,7 +125,6 @@ async def test_update_next_fail():
     m_coordinator = AsyncMock()
     m_coordinator.data = None
     next = AucklandBinCollection(m_coordinator, TEST_LOC, "next", 1)
-    await next.async_update()
     assert next.state is None
     assert next.extra_state_attributes is None
 
@@ -141,7 +137,6 @@ async def test_out_of_date_index():
         {"date": TEST_UPCOMING_DATE_STR, "type": TEST_UPCOMING_TYPE_STR}
     ]
     sensor = AucklandBinCollection(m_coordinator, TEST_LOC, "test_sensor", 1)
-    await sensor.async_update()
     assert sensor.state is None
     assert sensor.extra_state_attributes is None
 
@@ -188,15 +183,15 @@ def test_next_poll_time_schedules_today_when_not_yet_reached():
 
 @freeze_time("2024-06-01 03:00:00")
 def test_next_poll_time_within_jitter_bounds():
-    """The scheduled time must be within POLL_HOUR ± POLL_JITTER_MINUTES."""
+    """The scheduled time must be within POLL_HOUR ± POLL_JITTER_SECONDS."""
     # Run many times to exercise the random jitter
     for _ in range(50):
         next_time = _next_poll_time()
         # Convert to NZ local time for comparison
         local = next_time.astimezone(TZ_NZ)
         base = local.replace(hour=POLL_HOUR, minute=0, second=0, microsecond=0)
-        diff_minutes = abs((local - base).total_seconds()) / 60
-        assert diff_minutes <= POLL_JITTER_MINUTES + 1  # +1 for float rounding
+        diff_seconds = abs((local - base).total_seconds())
+        assert diff_seconds <= POLL_JITTER_SECONDS + 1  # +1 for float rounding
 
 
 # --- async_start ------------------------------------------------------------
@@ -529,6 +524,8 @@ async def test_async_setup_entry(hass):
     """async_setup_entry creates BinCollectionCoordinator and adds two entities."""
     mock_entry = MagicMock()
     mock_entry.data = {"location_id": TEST_LOC}
+    mock_entry.entry_id = "test_entry_id"
+    hass.data.setdefault("auckland_bin_collection", {})
 
     added_entities = []
 
