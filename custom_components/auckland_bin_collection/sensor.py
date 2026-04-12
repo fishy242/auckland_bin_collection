@@ -13,7 +13,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_call_later, async_track_point_in_time
 from homeassistant.helpers.typing import StateType
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed, CoordinatorEntity
 import pytz
 import requests
 
@@ -29,7 +29,7 @@ UA_HEADER = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML
 # Scheduling configuration
 POLL_TIMEZONE = pytz.timezone("Pacific/Auckland")
 POLL_HOUR = 6          # Daily poll target: 6:00 AM NZ time
-POLL_JITTER_MINUTES = 30   # ± random variation around the target time (minutes)
+POLL_JITTER_SECONDS = 1800   # ± random variation around the target time (seconds)
 RETRY_MIN_MINUTES = 30     # Minimum retry delay after a failed poll (minutes)
 RETRY_MAX_MINUTES = 90     # Maximum retry delay after a failed poll (minutes)
 
@@ -97,17 +97,17 @@ async def async_get_bin_dates(hass: HomeAssistant, location_id: str):
 
 
 def _next_poll_time() -> datetime:
-    """Calculate the next daily poll time: POLL_HOUR NZ time ± POLL_JITTER_MINUTES."""
+    """Calculate the next daily poll time: POLL_HOUR NZ time ± POLL_JITTER_SECONDS."""
     now = datetime.now(POLL_TIMEZONE)
-    jitter = random.randint(-POLL_JITTER_MINUTES, POLL_JITTER_MINUTES)
-    target = now.replace(hour=POLL_HOUR, minute=0, second=0, microsecond=0) + timedelta(minutes=jitter)
+    jitter = random.randint(-POLL_JITTER_SECONDS, POLL_JITTER_SECONDS)
+    target = now.replace(hour=POLL_HOUR, minute=0, second=0, microsecond=0) + timedelta(seconds=jitter)
 
     # If the target time today has already passed, schedule for tomorrow
     if target <= now:
         target += timedelta(days=1)
 
     _LOGGER.debug(
-        "Next scheduled poll at %s (jitter: %+d min)",
+        "Next scheduled poll at %s (jitter: %+d sec)",
         target.strftime("%Y-%m-%d %H:%M:%S %Z"),
         jitter,
     )
@@ -207,8 +207,12 @@ async def async_setup_entry(
 
     location_id = entry.data[CONF_LOCATION_ID]
 
-    coordinator = BinCollectionCoordinator(hass, location_id)
-    await coordinator.async_start()
+    if entry.entry_id in hass.data[DOMAIN]:
+        coordinator = hass.data[DOMAIN][entry.entry_id]
+    else:
+        coordinator = BinCollectionCoordinator(hass, location_id)
+        await coordinator.async_start()
+        hass.data[DOMAIN][entry.entry_id] = coordinator
 
     async_add_entities(
         [
@@ -222,10 +226,11 @@ async def async_setup_entry(
     )
 
 
-class AucklandBinCollection(SensorEntity):
+class AucklandBinCollection(CoordinatorEntity, SensorEntity):
     """AucklandBinCollection class."""
 
     def __init__(self, coordinator, location_id, name, date_index) -> None:
+        super().__init__(coordinator)
         self.coordinator = coordinator
         self._location_id = location_id
         self._name = name
@@ -280,7 +285,3 @@ class AucklandBinCollection(SensorEntity):
     @property
     def device_class(self) -> SensorDeviceClass:
         return SensorDeviceClass.DATE
-
-    async def async_update(self):
-        """Handle data update."""
-        await self.coordinator.async_request_refresh()
