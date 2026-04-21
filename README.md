@@ -30,10 +30,11 @@ To setup, you need the location ID of the address where you want to retrieve the
 
 ### Entities Created
 
-Upon successful setup, a natively integrated **Calendar Entity** (`calendar.auckland_bin_collection`) will be created. This is the primary and recommended way to interact with the integration going forward.
+Upon successful setup, a natively integrated **Calendar Entity** (`calendar.auckland_bin_collection`) will be created, alongside two **Sensor Entities** (`sensor.auckland_bin_collection_upcoming` and `sensor.auckland_bin_collection_next`). 
 
-> [!WARNING]
-> The two legacy sensor entities (`sensor.auckland_bin_collection_upcoming` and `sensor.auckland_bin_collection_next`) are **deprecated** and will be removed in a future release. Please begin moving your automations over to the Calendar entity.
+Both entity types automatically use the same underlying data with zero extra load, but are optimized for different use cases:
+* **Calendar:** Best for automations and reminders.
+* **Sensors:** Best for visual display on dashboard cards.
 
 ## Usage
 
@@ -41,7 +42,7 @@ Upon successful setup, a natively integrated **Calendar Entity** (`calendar.auck
 
 The calendar entity cleanly separates each bin collection type into its own discrete, all-day calendar event (e.g., an individual "Rubbish" event and an individual "Recycling" event on the same day). This allows you to write precise, condition-based automations using Home Assistant's native calendar features.
 
-### Sensor State (Deprecated)
+### Sensor State (Dashboard)
 
 The state of the sensor is the date of the collection day.
 
@@ -95,11 +96,11 @@ action:
         {% endfor %}
 ```
 
-### Dashboard Card (Legacy Sensor)
+### Dashboard Card (State Sensor)
 
-If you are still using the deprecated sensors, you can add a Markdown Card on your Home Assistant Dashboard with the following content:
+To easily display upcoming bins on your Home Assistant Dashboard, you can add a Markdown Card using the state sensors with the following content:
 
-```
+```text
 Upcoming: **{{ state_attr('sensor.auckland_bin_collection_upcoming', 'date') }}**{% if state_attr('sensor.auckland_bin_collection_upcoming', 'rubbish') == 'true' %} <ha-icon icon="mdi:trash-can-outline"></ha-icon>{% endif %}{% if state_attr('sensor.auckland_bin_collection_upcoming', 'recycle') == 'true' %} <ha-icon icon="mdi:recycle"></ha-icon>{% endif %}{% if state_attr('sensor.auckland_bin_collection_upcoming', 'food scraps') == 'true' %} <ha-icon icon="mdi:compost"></ha-icon>{% endif %}
 
 Next:  **{{ state_attr('sensor.auckland_bin_collection_next', 'date') }}**{% if state_attr('sensor.auckland_bin_collection_next', 'rubbish') == 'true' %} <ha-icon icon="mdi:trash-can-outline"></ha-icon>{% endif %}{% if state_attr('sensor.auckland_bin_collection_next', 'recycle') == 'true' %}<ha-icon icon="mdi:recycle"></ha-icon>{% endif %}{% if state_attr('sensor.auckland_bin_collection_next', 'food scraps') == 'true' %} <ha-icon icon="mdi:compost"></ha-icon>{% endif %}
