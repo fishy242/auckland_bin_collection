@@ -74,12 +74,14 @@ async def async_get_bin_dates(hass: HomeAssistant, location_id: str):
     extracted_data = []
     # We can assume first block is the household schedule
     for date_block in schedules[0].find_all("span", {"class": "acpl-icon-with-attribute left"}):
-        date_field = date_block.find("span", {"class", ""})
+        date_field = date_block.find("span", {"class": ""})
         if date_field:
-            collect_type = date_field.contents[0].strip().rstrip(':')
-            collect_date = date_field.find("b").string
-            if collect_date and collect_type:
-                extracted_data.append((collect_date.text, collect_type))
+            collect_type = str(date_field.contents[0]).strip().rstrip(':')
+            b_tag = date_field.find("b")
+            if b_tag and b_tag.string:
+                collect_date = str(b_tag.string).strip()
+                if collect_date and collect_type:
+                    extracted_data.append((collect_date, collect_type))
 
     if not extracted_data:
         raise UpdateFailed("Cannot retrieve bin dates")
