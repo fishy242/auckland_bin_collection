@@ -27,13 +27,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry"""
 
-    unload_ok = True
-    for component in PLATFORMS:
-        if await hass.config_entries.async_forward_entry_unload(entry, component) == False:
-            unload_ok = False
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
+        coordinator = hass.data[DOMAIN].pop(entry.entry_id, None)
+        if coordinator is not None:
+            # Cancel the scheduled poll callback so it stops holding a
+            # reference to the coordinator after unload/reload.
+            await coordinator.async_shutdown()
         _LOGGER.debug("Auckland Bin Collection entry unloaded")
 
     return unload_ok
