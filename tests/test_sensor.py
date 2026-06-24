@@ -361,6 +361,46 @@ async def test_async_get_bin_dates_success():
     # Should return a list of dicts sorted by date
     assert isinstance(result, list)
     assert len(result) >= 1
+    # "Food scraps" must always appear after Rubbish/Recycle so that
+    # calendar UIs that only render the first 1-2 lines still show
+    # the higher-priority bin types.
+    assert result[0]["Tuesday, 12 January"] == ["Rubbish", "Food scraps"]
+
+
+@pytest.mark.asyncio
+async def test_async_get_bin_dates_food_scraps_last_even_when_listed_first():
+    """When the council lists Food scraps before other types, it should still come last."""
+    html = """
+    <html><body>
+    <div class="acpl-schedule-card">
+      <span class="acpl-icon-with-attribute left">
+        <span class="">
+          Food scraps:<b>Tuesday, 12 January</b>
+        </span>
+      </span>
+      <span class="acpl-icon-with-attribute left">
+        <span class="">
+          Rubbish:<b>Tuesday, 12 January</b>
+        </span>
+      </span>
+      <span class="acpl-icon-with-attribute left">
+        <span class="">
+          Recycling:<b>Tuesday, 12 January</b>
+        </span>
+      </span>
+    </div>
+    </body></html>
+    """
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.text = html
+
+    mock_hass = MagicMock()
+    mock_hass.async_add_executor_job = AsyncMock(return_value=mock_response)
+
+    result = await async_get_bin_dates(mock_hass, TEST_LOC)
+
+    assert result[0]["Tuesday, 12 January"] == ["Rubbish", "Recycling", "Food scraps"]
 
 
 @pytest.mark.asyncio

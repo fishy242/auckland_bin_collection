@@ -9,6 +9,7 @@ A Home Assistant custom component grep the rubbish and recycle (food scraps soon
 | 0.1.0   | First publish release                                                  |
 | 0.2.0   | Update with Auckland Council website to include food scraps collection |
 | 0.3.0   | Added native Calendar entity and optimized polling frequency           |
+| 0.3.1   | Always list "Food scraps" last so Rubbish/Recycle stay visible first   |
 
 ## Installation
 
