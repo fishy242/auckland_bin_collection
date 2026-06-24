@@ -90,6 +90,11 @@ async def async_get_bin_dates(hass: HomeAssistant, location_id: str):
             data_dict[collect_date] = []
         data_dict[collect_date].append(collect_type)
 
+    # Push "Food scraps" to the end so Rubbish/Recycle remain visible first
+    # in calendar UIs that only render the first 1-2 lines per event.
+    for collection_types in data_dict.values():
+        collection_types.sort(key=lambda value: value.casefold() == "food scraps")
+
     sorted_date = sorted(data_dict.keys(), key=get_date_from_str)
     sorted_data = [{collect_date: data_dict[collect_date]} for collect_date in sorted_date]
 
