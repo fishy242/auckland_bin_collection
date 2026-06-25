@@ -157,41 +157,35 @@ TZ_NZ = pytz.timezone("Pacific/Auckland")
 
 # --- _next_poll_time --------------------------------------------------------
 
-@freeze_time("2024-06-01 03:00:00")  # 3 AM UTC → 15:00 NZ (before 6 AM next day)
-def test_next_poll_time_is_in_future():
+@freeze_time("2026-06-28 00:00:00")
+def test_next_poll_time_is_after_current_collection_event_end():
     """_next_poll_time should always return a time in the future."""
-    next_time = _next_poll_time()
+    next_time = _next_poll_time([{"Monday, 29 June": ["Rubbish"]}])
     now = datetime.now(TZ_NZ)
+
     assert next_time > now
+    assert next_time.date() == date(2026, 6, 30)
 
 
-@freeze_time("2024-06-01 03:00:00")  # 15:00 NZ — daily target (6 AM) already past
-def test_next_poll_time_schedules_tomorrow_when_past():
-    """When 6 AM today has already passed, schedule for tomorrow."""
-    next_time = _next_poll_time()
-    now = datetime.now(TZ_NZ)
-    assert next_time.date() == (now + timedelta(days=1)).date()
-
-
-@freeze_time("2024-06-01 17:00:00")  # 05:00 NZ — just before 6 AM
-def test_next_poll_time_schedules_today_when_not_yet_reached():
-    """When 6 AM today has not yet occurred, schedule for today."""
-    next_time = _next_poll_time()
-    now = datetime.now(TZ_NZ)
-    assert next_time.date() == now.date()
-
-
-@freeze_time("2024-06-01 03:00:00")
-def test_next_poll_time_within_jitter_bounds():
+@freeze_time("2026-06-28 00:00:00")
+def test_next_poll_time_within_collection_expiry_window():
     """The scheduled time must be within POLL_HOUR ± POLL_JITTER_SECONDS."""
-    # Run many times to exercise the random jitter
     for _ in range(50):
-        next_time = _next_poll_time()
-        # Convert to NZ local time for comparison
+        next_time = _next_poll_time([{"Monday, 29 June": ["Rubbish"]}])
         local = next_time.astimezone(TZ_NZ)
-        base = local.replace(hour=POLL_HOUR, minute=0, second=0, microsecond=0)
+        base = TZ_NZ.localize(datetime(2026, 6, 30, POLL_HOUR, 0, 0))
         diff_seconds = abs((local - base).total_seconds())
-        assert diff_seconds <= POLL_JITTER_SECONDS + 1  # +1 for float rounding
+        assert diff_seconds <= POLL_JITTER_SECONDS + 1
+
+
+@freeze_time("2026-06-30 20:00:00")
+def test_next_poll_time_uses_retry_window_when_collection_window_already_passed():
+    """Stale collection data uses the retry window instead of daily polling."""
+    next_time = _next_poll_time([{"Monday, 29 June": ["Rubbish"]}])
+    now = datetime.now(TZ_NZ)
+
+    assert now + timedelta(minutes=RETRY_MIN_MINUTES) <= next_time
+    assert next_time <= now + timedelta(minutes=RETRY_MAX_MINUTES)
 
 
 # --- async_start ------------------------------------------------------------
