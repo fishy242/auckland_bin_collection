@@ -65,9 +65,10 @@ class AucklandBinCollectionCalendar(CoordinatorEntity, CalendarEntity):
         if not date_obj:
             return None
 
-        # Return just the first bin type from the earliest day as the immediate "next" event property state
+        # The entity state exposes only one current/next event, so include all
+        # bins collected on that date in the summary.
         return CalendarEvent(
-            summary=bin_types[0],
+            summary=", ".join(bin_types),
             start=date_obj,
             end=date_obj + timedelta(days=1),
             description="Auckland Council Bin Collection",

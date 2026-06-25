@@ -28,10 +28,10 @@ UA_HEADER = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML
 
 # Scheduling configuration
 POLL_TIMEZONE = pytz.timezone("Pacific/Auckland")
-POLL_HOUR = 6          # Daily poll target: 6:00 AM NZ time
-POLL_JITTER_SECONDS = 1800   # ± random variation around the target time (seconds)
-RETRY_MIN_MINUTES = 30     # Minimum retry delay after a failed poll (minutes)
-RETRY_MAX_MINUTES = 90     # Maximum retry delay after a failed poll (minutes)
+POLL_HOUR = 12
+POLL_JITTER_SECONDS = 4 * 60 * 60
+RETRY_MIN_MINUTES = 120
+RETRY_MAX_MINUTES = 360
 
 
 def get_date_from_str(date_str: str) -> datetime.date:
@@ -101,29 +101,49 @@ async def async_get_bin_dates(hass: HomeAssistant, location_id: str):
     return sorted_data
 
 
-def _next_poll_time() -> datetime:
-    """Calculate the next daily poll time: POLL_HOUR NZ time ± POLL_JITTER_SECONDS."""
+def _next_poll_time(data) -> datetime:
+    """Calculate the next poll after the earliest known collection has ended."""
     now = datetime.now(POLL_TIMEZONE)
-    jitter = random.randint(-POLL_JITTER_SECONDS, POLL_JITTER_SECONDS)
-    target = now.replace(hour=POLL_HOUR, minute=0, second=0, microsecond=0) + timedelta(seconds=jitter)
+    collection_dates = []
+    for collection in data or []:
+        if not collection:
+            continue
+        collection_date = get_date_from_str(next(iter(collection)))
+        if collection_date:
+            collection_dates.append(collection_date)
 
-    # If the target time today has already passed, schedule for tomorrow
+    if not collection_dates:
+        return _retry_time()
+
+    event_end = min(collection_dates) + timedelta(days=1)
+    jitter = random.randint(-POLL_JITTER_SECONDS, POLL_JITTER_SECONDS)
+    target = POLL_TIMEZONE.localize(
+        datetime.combine(event_end, datetime.min.time())
+    ).replace(hour=POLL_HOUR) + timedelta(seconds=jitter)
+
     if target <= now:
-        target += timedelta(days=1)
+        return _retry_time()
 
     _LOGGER.debug(
-        "Next scheduled poll at %s (jitter: %+d sec)",
+        "Next scheduled poll at %s after collection data expires (jitter: %+d sec)",
         target.strftime("%Y-%m-%d %H:%M:%S %Z"),
         jitter,
     )
     return target
 
 
+def _retry_time() -> datetime:
+    """Calculate a randomized retry after a failed or stale poll."""
+    now = datetime.now(POLL_TIMEZONE)
+    delay_minutes = random.randint(RETRY_MIN_MINUTES, RETRY_MAX_MINUTES)
+    return now + timedelta(minutes=delay_minutes)
+
+
 class BinCollectionCoordinator(DataUpdateCoordinator):
-    """Custom coordinator that polls once daily at a fixed NZ time with random jitter.
+    """Custom coordinator that polls when the current collection data expires.
 
     On failure, it schedules a retry after a random delay instead of waiting
-    until the next daily window, to recover data without hammering the server.
+    until the next collection window, to recover data without hammering the server.
     """
 
     def __init__(self, hass: HomeAssistant, location_id: str) -> None:
@@ -139,15 +159,15 @@ class BinCollectionCoordinator(DataUpdateCoordinator):
         self._last_updated: datetime | None = None
 
     async def async_start(self) -> None:
-        """Start the coordinator: fetch immediately if no data, then schedule daily polls."""
+        """Start the coordinator: fetch immediately, then schedule from collection dates."""
         _LOGGER.debug("BinCollectionCoordinator starting")
         await self.async_refresh()  # Initial fetch on startup
         self._schedule_next_poll()
 
     def _schedule_next_poll(self) -> None:
-        """Schedule the next daily poll at the target time with jitter."""
+        """Schedule the next poll after the current collection data expires."""
         self._cancel_scheduled()
-        next_time = _next_poll_time()
+        next_time = _next_poll_time(self.data)
 
         @callback
         def _scheduled_refresh(_now: datetime) -> None:
@@ -160,11 +180,15 @@ class BinCollectionCoordinator(DataUpdateCoordinator):
     def _schedule_retry(self) -> None:
         """Schedule a retry after a random delay following a failed poll."""
         self._cancel_scheduled()
-        delay_minutes = random.randint(RETRY_MIN_MINUTES, RETRY_MAX_MINUTES)
-        delay_seconds = delay_minutes * 60
+        retry_time = _retry_time()
+        delay_seconds = max(
+            0,
+            int((retry_time - datetime.now(POLL_TIMEZONE)).total_seconds()),
+        )
 
         _LOGGER.warning(
-            "Last poll failed — retrying in %d minutes", delay_minutes
+            "Last poll failed, retrying at %s",
+            retry_time.strftime("%Y-%m-%d %H:%M:%S %Z"),
         )
 
         @callback
@@ -180,7 +204,7 @@ class BinCollectionCoordinator(DataUpdateCoordinator):
         try:
             await self.async_refresh()
             if self.last_update_success:
-                _LOGGER.debug("Scheduled poll succeeded — scheduling next daily poll")
+                _LOGGER.debug("Scheduled poll succeeded, scheduling next collection poll")
                 self._schedule_next_poll()
             else:
                 self._schedule_retry()

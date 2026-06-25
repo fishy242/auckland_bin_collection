@@ -60,7 +60,7 @@ async def test_async_setup_entry(hass):
 @freeze_time("2023-01-01")
 @pytest.mark.asyncio
 async def test_calendar_next_event():
-    """Test the event property returns the single next immediate event."""
+    """Test the event property summarizes all bins on the next collection day."""
     m_coordinator = AsyncMock()
     m_coordinator.data = TEST_COORDINATOR_DATA
 
@@ -68,8 +68,7 @@ async def test_calendar_next_event():
     event = calendar.event
 
     assert isinstance(event, CalendarEvent)
-    # The first bin type of the first day
-    assert event.summary == "Rubbish"
+    assert event.summary == "Rubbish, Food scraps"
     assert event.start == date(2023, 1, 12)
     assert event.end == date(2023, 1, 13)
 
@@ -127,4 +126,3 @@ async def test_calendar_empty_data():
     
     events = await calendar.async_get_events(MagicMock(), start_date, end_date)
     assert len(events) == 0
-
