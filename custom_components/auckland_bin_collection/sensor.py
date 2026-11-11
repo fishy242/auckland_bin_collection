@@ -25,6 +25,23 @@ KEY_DATE = "date"
 KEY_TYPE = "type"
 URL_REQUEST = "https://www.aucklandcouncil.govt.nz/en/rubbish-recycling/rubbish-recycling-collections/rubbish-recycling-collection-days/"
 UA_HEADER = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0"
+# The council's edge filter returns 406 unless the request looks like a browser
+# navigation. User-Agent, Accept-Language, sec-ch-ua and Sec-Fetch-Site are the
+# ones it checks today; the rest are sent to match a real browser.
+# Accept-Encoding is left to requests so it only advertises what it can decode.
+REQUEST_HEADERS = {
+    "User-Agent": UA_HEADER,
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    "Accept-Language": "en-NZ,en;q=0.9",
+    "sec-ch-ua": '"Not(A:Brand";v="8", "Chromium";v="144", "Microsoft Edge";v="144"',
+    "sec-ch-ua-mobile": "?0",
+    "sec-ch-ua-platform": '"Windows"',
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+    "Sec-Fetch-User": "?1",
+    "Upgrade-Insecure-Requests": "1",
+}
 
 # Scheduling configuration
 POLL_TIMEZONE = pytz.timezone("Pacific/Auckland")
@@ -58,8 +75,7 @@ async def async_get_bin_dates(hass: HomeAssistant, location_id: str):
     """Async method to get data from Auckland Council webpage."""
 
     url = f"{URL_REQUEST}{location_id}.html"
-    agent_header = {"User-Agent": UA_HEADER, "Accept-Encoding": "gzip, deflate, br, zstd", "Accept-Language": "en-NZ,en;q=0.9"}
-    req_func = partial(requests.get, url, headers=agent_header)
+    req_func = partial(requests.get, url, headers=REQUEST_HEADERS, timeout=30)
     response = await hass.async_add_executor_job(req_func)
 
     if response.status_code != 200:
