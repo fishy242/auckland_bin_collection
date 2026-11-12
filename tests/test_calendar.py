@@ -34,6 +34,8 @@ async def test_async_setup_entry(hass):
     mock_entry.entry_id = "test_entry"
 
     hass.data.setdefault(DOMAIN, {})
+    coordinator = MagicMock()
+    hass.data[DOMAIN][mock_entry.entry_id] = coordinator
 
     added_entities = []
     def capture_entities(entities):
@@ -55,6 +57,7 @@ async def test_async_setup_entry(hass):
     assert len(added_entities) == 1
     assert isinstance(added_entities[0], AucklandBinCollectionCalendar)
     assert "test_entry" in hass.data[DOMAIN]
+    assert added_entities[0].coordinator is coordinator
 
 
 @freeze_time("2023-01-01")

@@ -3,11 +3,13 @@ from datetime import date, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch, call
 
 from freezegun import freeze_time
+from curl_cffi.requests.exceptions import RequestException
 import pytest
 import pytz
 
 from custom_components.auckland_bin_collection.sensor import (
     URL_REQUEST,
+    REQUEST_TIMEOUT,
     AucklandBinCollection,
     BinCollectionCoordinator,
     POLL_HOUR,
@@ -361,6 +363,40 @@ async def test_async_get_bin_dates_success():
     assert result[0]["Tuesday, 12 January"] == ["Rubbish", "Food scraps"]
 
 
+async def test_async_get_bin_dates_uses_browser_client():
+    """The request must match browser TLS/headers and have a bounded timeout."""
+    mock_hass = MagicMock()
+
+    async def execute_request(request):
+        return request()
+
+    mock_hass.async_add_executor_job = AsyncMock(side_effect=execute_request)
+    with patch(
+        "custom_components.auckland_bin_collection.sensor.requests.get",
+        return_value=MagicMock(status_code=200, text=SAMPLE_HTML),
+    ) as mock_get:
+        await async_get_bin_dates(mock_hass, TEST_LOC)
+
+    mock_get.assert_called_once_with(
+        f"{URL_REQUEST}{TEST_LOC}.html",
+        impersonate="chrome",
+        timeout=REQUEST_TIMEOUT,
+    )
+
+
+async def test_async_get_bin_dates_network_failure():
+    """curl client failures should trigger the coordinator's normal retry path."""
+    from homeassistant.helpers.update_coordinator import UpdateFailed
+
+    mock_hass = MagicMock()
+    mock_hass.async_add_executor_job = AsyncMock(
+        side_effect=RequestException("Connection timed out", 28)
+    )
+
+    with pytest.raises(UpdateFailed, match="Connection timed out"):
+        await async_get_bin_dates(mock_hass, TEST_LOC)
+
+
 @pytest.mark.asyncio
 async def test_async_get_bin_dates_food_scraps_last_even_when_listed_first():
     """When the council lists Food scraps before other types, it should still come last."""
@@ -398,17 +434,18 @@ async def test_async_get_bin_dates_food_scraps_last_even_when_listed_first():
 
 
 @pytest.mark.asyncio
-async def test_async_get_bin_dates_non_200_raises():
+@pytest.mark.parametrize("status_code", [404, 406, 503])
+async def test_async_get_bin_dates_non_200_raises(status_code):
     """async_get_bin_dates raises UpdateFailed on a non-200 HTTP response."""
     from homeassistant.helpers.update_coordinator import UpdateFailed
 
     mock_response = MagicMock()
-    mock_response.status_code = 404
+    mock_response.status_code = status_code
 
     mock_hass = MagicMock()
     mock_hass.async_add_executor_job = AsyncMock(return_value=mock_response)
 
-    with pytest.raises(UpdateFailed, match="404"):
+    with pytest.raises(UpdateFailed, match=str(status_code)):
         await async_get_bin_dates(mock_hass, TEST_LOC)
 
 
@@ -555,11 +592,13 @@ async def test_do_scheduled_refresh_exception_schedules_retry(hass):
 # ---------------------------------------------------------------------------
 
 async def test_async_setup_entry(hass):
-    """async_setup_entry creates BinCollectionCoordinator and adds two entities."""
+    """Sensors use the coordinator created before platforms are forwarded."""
     mock_entry = MagicMock()
     mock_entry.data = {"location_id": TEST_LOC}
     mock_entry.entry_id = "test_entry_id"
     hass.data.setdefault("auckland_bin_collection", {})
+    coordinator = MagicMock()
+    hass.data["auckland_bin_collection"][mock_entry.entry_id] = coordinator
 
     added_entities = []
 
@@ -581,3 +620,4 @@ async def test_async_setup_entry(hass):
 
     assert len(added_entities) == 2
     assert all(isinstance(e, AucklandBinCollection) for e in added_entities)
+    assert all(e.coordinator is coordinator for e in added_entities)

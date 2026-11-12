@@ -22,13 +22,7 @@ async def async_setup_entry(
     """Set up the calendar platform."""
     location_id = entry.data[CONF_LOCATION_ID]
 
-    # Use the shared coordinator if it was already created by the sensor platform
-    if entry.entry_id in hass.data[DOMAIN]:
-        coordinator = hass.data[DOMAIN][entry.entry_id]
-    else:
-        coordinator = BinCollectionCoordinator(hass, location_id)
-        await coordinator.async_start()
-        hass.data[DOMAIN][entry.entry_id] = coordinator
+    coordinator = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities([AucklandBinCollectionCalendar(coordinator, location_id)])
 
