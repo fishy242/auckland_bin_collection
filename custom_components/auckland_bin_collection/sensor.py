@@ -7,6 +7,8 @@ from typing import Any
 from functools import partial
 
 from bs4 import BeautifulSoup
+from curl_cffi import requests
+from curl_cffi.requests.exceptions import RequestException
 from homeassistant.components.sensor import SensorEntity, SensorDeviceClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
@@ -15,7 +17,6 @@ from homeassistant.helpers.event import async_call_later, async_track_point_in_t
 from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed, CoordinatorEntity
 import pytz
-import requests
 
 from .const import CONF_LOCATION_ID, DOMAIN
 
@@ -24,7 +25,7 @@ _LOGGER = logging.getLogger(__name__)
 KEY_DATE = "date"
 KEY_TYPE = "type"
 URL_REQUEST = "https://www.aucklandcouncil.govt.nz/en/rubbish-recycling/rubbish-recycling-collections/rubbish-recycling-collection-days/"
-UA_HEADER = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36 Edg/144.0.0.0"
+REQUEST_TIMEOUT = 30
 
 # Scheduling configuration
 POLL_TIMEZONE = pytz.timezone("Pacific/Auckland")
@@ -58,9 +59,15 @@ async def async_get_bin_dates(hass: HomeAssistant, location_id: str):
     """Async method to get data from Auckland Council webpage."""
 
     url = f"{URL_REQUEST}{location_id}.html"
-    agent_header = {"User-Agent": UA_HEADER, "Accept-Encoding": "gzip, deflate, br, zstd", "Accept-Language": "en-NZ,en;q=0.9"}
-    req_func = partial(requests.get, url, headers=agent_header)
-    response = await hass.async_add_executor_job(req_func)
+    # The council rejects ordinary HTTP clients with HTTP 406. Match a browser's
+    # TLS fingerprint and headers together instead of maintaining a stale UA.
+    req_func = partial(
+        requests.get, url, impersonate="chrome", timeout=REQUEST_TIMEOUT
+    )
+    try:
+        response = await hass.async_add_executor_job(req_func)
+    except RequestException as err:
+        raise UpdateFailed(f"Failed to fetch collection page: {err}") from err
 
     if response.status_code != 200:
         raise UpdateFailed(f"Failed to fetch page: {response.status_code}")
@@ -235,13 +242,7 @@ async def async_setup_entry(
     """Add Auckland Bin Collection entities from a config_entry."""
 
     location_id = entry.data[CONF_LOCATION_ID]
-
-    if entry.entry_id in hass.data[DOMAIN]:
-        coordinator = hass.data[DOMAIN][entry.entry_id]
-    else:
-        coordinator = BinCollectionCoordinator(hass, location_id)
-        await coordinator.async_start()
-        hass.data[DOMAIN][entry.entry_id] = coordinator
+    coordinator = hass.data[DOMAIN][entry.entry_id]
 
     async_add_entities(
         [
